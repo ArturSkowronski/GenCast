@@ -5,10 +5,27 @@ import csv from 'csv-parser';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 import OpenAI from 'openai';
+import Anthropic from '@anthropic-ai/sdk';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
+
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
+});
+
+// Determine which API to use based on available environment variables
+const useOpenAI = !!process.env.OPENAI_API_KEY;
+const useClaude = !!process.env.ANTHROPIC_API_KEY;
+
+if (!useOpenAI && !useClaude) {
+  console.error('Error: Neither OPENAI_API_KEY nor ANTHROPIC_API_KEY environment variable is set');
+  process.exit(1);
+}
+
+const apiProvider = useOpenAI ? 'OpenAI' : 'Claude';
+console.log(`Using ${apiProvider} API for content generation`);
 
 interface ArticleLink {
   url: string;
@@ -102,19 +119,38 @@ async function generateDebriefing(article: ArticleContent): Promise<Debriefing |
       .replace('{title}', article.title)
       .replace('{content}', article.content);
 
-    const response = await openai.chat.completions.create({
-      model: 'gpt-3.5-turbo',
-      messages: [
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      max_tokens: 500,
-      temperature: 0.7
-    });
+    let summary: string;
 
-    const summary = response.choices[0]?.message?.content?.trim() || 'No summary generated';
+    if (useOpenAI) {
+      const response = await openai.chat.completions.create({
+        model: 'gpt-3.5-turbo',
+        messages: [
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        max_tokens: 500,
+        temperature: 0.7
+      });
+
+      summary = response.choices[0]?.message?.content?.trim() || 'No summary generated';
+    } else {
+      // Use Claude API
+      const response = await anthropic.messages.create({
+        model: 'claude-3-haiku-20240307',
+        max_tokens: 500,
+        temperature: 0.7,
+        messages: [
+          {
+            role: 'user',
+            content: prompt
+          }
+        ]
+      });
+
+      summary = response.content[0]?.type === 'text' ? response.content[0].text.trim() : 'No summary generated';
+    }
 
     return {
       url: article.url,
