@@ -7,7 +7,7 @@
     "start": "node dist/index.js",
     "dev": "npx tsc && node dist/index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "test:integration": "npx tsc && node dist/tests/integration.test.js"
+    "test:integration": "jest tests/integration.test.ts"
   },
   "keywords": [],
   "author": "",
@@ -15,11 +15,17 @@
   "description": "",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.29.0",
+    "@elevenlabs/elevenlabs-js": "^2.5.0",
     "@types/node": "^24.0.10",
     "axios": "^1.10.0",
     "cheerio": "^1.1.0",
     "csv-parser": "^3.2.0",
     "openai": "^5.8.2",
     "typescript": "^5.8.3"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "jest": "^30.0.4",
+    "ts-jest": "^29.4.0"
   }
 }

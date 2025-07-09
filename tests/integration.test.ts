@@ -215,6 +215,41 @@ ${TEST_URLS[1]}`;
   }
 }
 
+// NOTE: This test requires Jest or Mocha. Install types if needed:
+// npm i --save-dev @types/jest or @types/mocha
+
+// Dynamically import convertTextToSpeech for the test
+let convertTextToSpeech: ((textPath: string) => Promise<string | null>) | undefined;
+
+beforeAll(async () => {
+  const src = await import('../src/index');
+  convertTextToSpeech = src.convertTextToSpeech;
+});
+
+describe('ElevenLabs TTS Integration', () => {
+  const tempDir = os.tmpdir();
+  const testTextPath = path.join(tempDir, 'test-tts.txt');
+  const testMp3Path = path.join(tempDir, 'test-tts.mp3');
+
+  beforeAll(() => {
+    fs.writeFileSync(testTextPath, 'This is a test of ElevenLabs text to speech integration.');
+  });
+
+  afterAll(() => {
+    if (fs.existsSync(testTextPath)) fs.unlinkSync(testTextPath);
+    if (fs.existsSync(testMp3Path)) fs.unlinkSync(testMp3Path);
+  });
+
+  it('should generate a non-empty MP3 file from text', async () => {
+    if (!convertTextToSpeech) throw new Error('convertTextToSpeech not loaded');
+    const mp3Path = await convertTextToSpeech(testTextPath);
+    expect(mp3Path).toBe(testMp3Path);
+    expect(fs.existsSync(mp3Path!)).toBe(true);
+    const stats = fs.statSync(mp3Path!);
+    expect(stats.size).toBeGreaterThan(1000); // Should be non-trivial size
+  }, 20000); // Increased timeout to 20 seconds
+});
+
 async function runIntegrationTest(): Promise<void> {
   console.log('🚀 Starting Integration Test');
   console.log('============================');

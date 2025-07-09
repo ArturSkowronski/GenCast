@@ -1,6 +1,6 @@
 # GenCast - Article Debriefing Generator
 
-A TypeScript application that reads article links from a CSV file, fetches their content, and generates AI-powered debriefings using OpenAI.
+A TypeScript application that reads article links from a CSV file, fetches their content, and generates AI-powered debriefings using OpenAI or Claude. Now supports text-to-speech (TTS) conversion to MP3 using ElevenLabs.
 
 ## Setup
 
@@ -12,6 +12,8 @@ A TypeScript application that reads article links from a CSV file, fetches their
 2. Set up environment variables:
    - Copy `.env.example` to `.env`
    - Add your OpenAI API key to the `OPENAI_API_KEY` variable
+   - (Optional) Add your Anthropic Claude API key to `ANTHROPIC_API_KEY`
+   - (Optional) Add your ElevenLabs API key to `ELEVENLABS_API_KEY` for TTS
 
 3. Build the project:
    ```bash
@@ -30,18 +32,22 @@ A TypeScript application that reads article links from a CSV file, fetches their
    ```
 
 3. The debriefings will be saved to `~/Materials/dd-MM-YYYY.txt`
+   - (Optional) To convert the output text file to MP3, use the `convertTextToSpeech` function in your workflow or run the provided integration test.
 
 ## Features
 
 - Reads article links from date-formatted CSV files
 - Fetches article content using web scraping
-- Generates comprehensive debriefings using OpenAI GPT-3.5-turbo
+- Generates comprehensive debriefings using OpenAI GPT-3.5-turbo or Claude
 - Saves results to formatted text files
+- **NEW:** Converts debriefing text files to MP3 using ElevenLabs TTS
 - Handles errors gracefully and provides progress feedback
 
 ## Environment Variables
 
-- `OPENAI_API_KEY`: Your OpenAI API key (required)
+- `OPENAI_API_KEY`: Your OpenAI API key (required for OpenAI integration)
+- `ANTHROPIC_API_KEY`: Your Anthropic Claude API key (optional, for Claude integration)
+- `ELEVENLABS_API_KEY`: Your ElevenLabs API key (optional, for TTS integration)
 
 ## CSV Format
 
@@ -52,3 +58,35 @@ The CSV file should contain article URLs. Supported column names:
 - `Link`
 
 Or URLs can be in the first column without headers.
+
+## ElevenLabs TTS Integration
+
+- The function `convertTextToSpeech(textPath: string)` (exported from `src/index.ts`) will convert a text file to an MP3 file using ElevenLabs.
+- The output MP3 will be saved alongside the text file, with the same name but `.mp3` extension.
+- Requires the `ELEVENLABS_API_KEY` environment variable.
+
+## Integration Tests
+
+- Integration tests are located in `tests/integration.test.ts`.
+- To run the ElevenLabs TTS integration test:
+  1. Ensure you have set `ELEVENLABS_API_KEY` in your environment.
+  2. Build the project: `npm run build`
+  3. Run the test with your preferred test runner (e.g., Jest or Mocha).
+     - Example for Jest:
+       ```bash
+       npx jest tests/integration.test.ts
+       ```
+     - Example for Mocha:
+       ```bash
+       npx mocha tests/integration.test.ts
+       ```
+
+## Cost Considerations
+
+Running this test will make actual API calls and may incur small costs:
+- OpenAI: ~$0.002 per test run (GPT-3.5-turbo)
+- ElevenLabs: TTS API usage may incur costs depending on your ElevenLabs plan
+
+---
+
+For more details, see the comments in the code and tests.

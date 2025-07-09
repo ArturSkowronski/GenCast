@@ -6,6 +6,7 @@ import axios from 'axios';
 import * as cheerio from 'cheerio';
 import OpenAI from 'openai';
 import Anthropic from '@anthropic-ai/sdk';
+import { ElevenLabs } from '@elevenlabs/elevenlabs-js';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -14,6 +15,8 @@ const openai = new OpenAI({
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
+
+// ElevenLabs configuration will be set via environment variable
 
 // Determine which API to use based on available environment variables
 const useOpenAI = !!process.env.OPENAI_API_KEY;
@@ -164,16 +167,28 @@ async function generateDebriefing(article: ArticleContent): Promise<Debriefing |
 }
 
 async function readCSVLinks(csvPath: string): Promise<string[]> {
+  // Read the first line to detect if it's a header
+  const firstLine = fs.readFileSync(csvPath, 'utf8').split(/\r?\n/)[0]?.trim();
+  const hasHeader = firstLine && /^(url|link)$/i.test(firstLine);
+
   return new Promise((resolve, reject) => {
     const links: string[] = [];
-    
+    const parser = hasHeader ? csv() : csv({ headers: false });
     fs.createReadStream(csvPath)
-      .pipe(csv())
-      .on('data', (row) => {
-        // Try different possible column names
-        const url = row.url || row.link || row.URL || row.Link || Object.values(row)[0];
-        if (url && typeof url === 'string') {
-          links.push(url.trim());
+      .pipe(parser)
+      .on('data', (row: any) => {
+        if (hasHeader) {
+          // Try different possible column names
+          const url = row.url || row.link || row.URL || row.Link || Object.values(row)[0];
+          if (url && typeof url === 'string') {
+            links.push(url.trim());
+          }
+        } else {
+          // No header: row is an object with numeric keys
+          const url = row[0] || Object.values(row)[0];
+          if (url && typeof url === 'string') {
+            links.push(url.trim());
+          }
         }
       })
       .on('end', () => {
@@ -200,6 +215,51 @@ ${'='.repeat(80)}
   }).join('\n');
 
   fs.writeFileSync(outputPath, content, 'utf8');
+}
+
+async function convertTextToSpeech(textPath: string): Promise<string | null> {
+  try {
+    console.log('Starting text-to-speech conversion...');
+    
+    if (!process.env.ELEVENLABS_API_KEY) {
+      console.log('ElevenLabs API key not found, skipping TTS conversion');
+      return null;
+    }
+
+    const { ElevenLabsClient } = await import("@elevenlabs/elevenlabs-js");
+    const elevenlabs = new ElevenLabsClient({
+      apiKey: process.env.ELEVENLABS_API_KEY,
+    });
+
+    const textContent = fs.readFileSync(textPath, 'utf8');
+    if (!textContent.trim()) {
+      console.error('No text content found in file');
+      return null;
+    }
+
+    const mp3Path = textPath.replace(/\.(txt|md)$/, '.mp3');
+    console.log('Generating audio with ElevenLabs...');
+
+    const audioStream = await elevenlabs.textToSpeech.convert(
+      "21m00Tcm4TlvDq8ikWAM",
+      {
+        text: textContent,
+        modelId: "eleven_multilingual_v2",
+        outputFormat: "mp3_44100_128"
+      }
+    );
+
+    // Convert web ReadableStream to Buffer
+    const { buffer } = await import('stream/consumers');
+    const audioBuffer = await buffer(audioStream as any);
+    fs.writeFileSync(mp3Path, audioBuffer);
+
+    console.log(`Audio saved to: ${mp3Path}`);
+    return mp3Path;
+  } catch (error) {
+    console.error('Error converting text to speech:', error);
+    return null;
+  }
 }
 
 async function main() {
@@ -275,3 +335,5 @@ async function main() {
 if (require.main === module) {
   main();
 }
+
+export { convertTextToSpeech, readCSVLinks };
