@@ -2,6 +2,23 @@
 
 A TypeScript application that reads article links from a CSV file, fetches their content, and generates AI-powered debriefings using OpenAI or Claude. Now supports text-to-speech (TTS) conversion to MP3 using ElevenLabs.
 
+---
+
+## Project Vision: Personal HackerNews Podcast-Reader
+
+This project is evolving into a personal morning HackerNews Podcast-Reader. The ultimate goal is to:
+
+- **Every morning, automatically fetch the Top 20 Hacker News articles.**
+- **Generate 10 minutes of content** summarizing what each article is about (perfect for a morning commute with my daughter).
+- **Deliver the audio summary to a private RSS feed** for podcasts, so I can listen easily.
+- **Provide a UI with a checklist** to quickly select articles for a deeper dive.
+- **While getting ready (e.g., putting on shoes), generate another 10 minutes**: deeper summaries of selected articles and their discussions.
+- **Add selected articles to Instapaper** for later, so if something is truly useful, I can deep-dive further.
+
+This is shared for inspiration! I tested ElvenReader, but it was not customizable enough, so I decided to build my own solution.
+
+---
+
 ## Setup
 
 1. Install dependencies:
