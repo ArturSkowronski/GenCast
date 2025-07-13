@@ -5,6 +5,7 @@ import axios from 'axios';
 import * as cheerio from 'cheerio';
 import OpenAI from 'openai';
 import Anthropic from '@anthropic-ai/sdk';
+import { fetchAndSaveTopHackerNewsArticles } from '../src/index';
 
 interface ArticleContent {
   url: string;
@@ -248,6 +249,23 @@ describe('ElevenLabs TTS Integration', () => {
     const stats = fs.statSync(mp3Path!);
     expect(stats.size).toBeGreaterThan(1000); // Should be non-trivial size
   }, 20000); // Increased timeout to 20 seconds
+});
+
+describe('Hacker News Integration', () => {
+  it('should fetch and save top 10 Hacker News articles to CSV', async () => {
+    const csvPath = await fetchAndSaveTopHackerNewsArticles();
+    expect(fs.existsSync(csvPath)).toBe(true);
+    const content = fs.readFileSync(csvPath, 'utf8');
+    const lines = content.trim().split(/\r?\n/);
+    // First line is header
+    expect(lines[0].toLowerCase()).toBe('url');
+    // Should have 10 URLs
+    expect(lines.length).toBe(11);
+    // All URLs should look like URLs
+    for (let i = 1; i < lines.length; i++) {
+      expect(lines[i]).toMatch(/^https?:\/\//);
+    }
+  }, 20000); // Allow up to 20 seconds for network
 });
 
 async function runIntegrationTest(): Promise<void> {

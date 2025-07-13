@@ -19,6 +19,14 @@ This is shared for inspiration! I tested ElvenReader, but it was not customizabl
 
 ---
 
+## Hacker News Integration
+
+- The function `fetchAndSaveTopHackerNewsArticles()` (exported from `src/index.ts`) will download the top 10 articles from Hacker News and save their URLs to a CSV file in your `~/Materials` directory, named `{dateString}-hn.csv` (e.g., `08-07-2025-hn.csv`).
+- This CSV can then be used as input for the rest of the GenCast pipeline.
+- An integration test is provided to verify this functionality.
+
+---
+
 ## Setup
 
 1. Install dependencies:
@@ -42,6 +50,7 @@ This is shared for inspiration! I tested ElvenReader, but it was not customizabl
 1. Create a CSV file with article links at `~/Materials/dd-MM-YYYY.csv` (e.g., `~/Materials/08-07-2025.csv`)
    - The CSV should contain URLs in a column named `url`, `link`, `URL`, or `Link`
    - Or the URLs can be in the first column
+   - Or, use the Hacker News integration to generate a CSV automatically.
 
 2. Run the script:
    ```bash
@@ -58,6 +67,7 @@ This is shared for inspiration! I tested ElvenReader, but it was not customizabl
 - Generates comprehensive debriefings using OpenAI GPT-3.5-turbo or Claude
 - Saves results to formatted text files
 - **NEW:** Converts debriefing text files to MP3 using ElevenLabs TTS
+- **NEW:** Downloads top Hacker News articles to CSV for automated workflows
 - Handles errors gracefully and provides progress feedback
 
 ## Environment Variables
@@ -85,6 +95,9 @@ Or URLs can be in the first column without headers.
 ## Integration Tests
 
 - Integration tests are located in `tests/integration.test.ts`.
+- To run the Hacker News integration test:
+  1. Run `npm run test:integration` (or `npx jest`).
+  2. The test will verify that the top 10 Hacker News articles are downloaded and saved to a CSV.
 - To run the ElevenLabs TTS integration test:
   1. Ensure you have set `ELEVENLABS_API_KEY` in your environment.
   2. Build the project: `npm run build`

@@ -7,6 +7,7 @@ import * as cheerio from 'cheerio';
 import OpenAI from 'openai';
 import Anthropic from '@anthropic-ai/sdk';
 import { ElevenLabs } from '@elevenlabs/elevenlabs-js';
+import https from 'https';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -260,6 +261,69 @@ async function convertTextToSpeech(textPath: string): Promise<string | null> {
     console.error('Error converting text to speech:', error);
     return null;
   }
+}
+
+/**
+ * Fetches the top 10 Hacker News articles and saves their URLs to ~/Materials/{dateString}-hn.csv
+ */
+export async function fetchAndSaveTopHackerNewsArticles(): Promise<string> {
+  const today = new Date();
+  const dateString = today.toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  }).replace(/\//g, '-');
+  const homeDir = os.homedir();
+  const materialsDir = path.join(homeDir, 'Materials');
+  const outputPath = path.join(materialsDir, `${dateString}-hn.csv`);
+
+  // Ensure Materials directory exists
+  if (!fs.existsSync(materialsDir)) {
+    fs.mkdirSync(materialsDir, { recursive: true });
+  }
+
+  // Fetch top stories IDs
+  const topStoriesUrl = 'https://hacker-news.firebaseio.com/v0/topstories.json';
+  const storyIds: number[] = await new Promise((resolve, reject) => {
+    https.get(topStoriesUrl, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        try {
+          resolve(JSON.parse(data));
+        } catch (e) {
+          reject(e);
+        }
+      });
+    }).on('error', reject);
+  });
+
+  // Fetch top 10 stories details
+  const top10 = storyIds.slice(0, 10);
+  const articleUrls: string[] = [];
+  await Promise.all(top10.map(async (id) => {
+    const itemUrl = `https://hacker-news.firebaseio.com/v0/item/${id}.json`;
+    await new Promise<void>((resolve) => {
+      https.get(itemUrl, (res) => {
+        let data = '';
+        res.on('data', chunk => data += chunk);
+        res.on('end', () => {
+          try {
+            const item = JSON.parse(data);
+            if (item && item.url) {
+              articleUrls.push(item.url);
+            }
+          } catch {}
+          resolve();
+        });
+      }).on('error', () => resolve());
+    });
+  }));
+
+  // Save to CSV
+  const csvContent = 'url\n' + articleUrls.join('\n');
+  fs.writeFileSync(outputPath, csvContent, 'utf8');
+  return outputPath;
 }
 
 async function main() {
